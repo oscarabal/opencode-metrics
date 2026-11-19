@@ -1,0 +1,10 @@
+.env
+*.lnk
+__pycache__/
+
+# Documentación interna: no se publica, salvo la guía y la infraestructura
+Docs/*
+!Docs/Guía de los dashboards de OpenCode.md
+!Docs/Infraestructura de métricas de OpenCode.md
+# Copia suelta de un PDF de la documentación
+/Docs$o

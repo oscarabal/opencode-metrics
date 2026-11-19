@@ -1,0 +1,52 @@
+services:
+  exporter:
+    image: python:3.13-alpine
+    command: ["python", "/app/exporter.py"]
+    volumes:
+      - ./exporter:/app:ro
+      # The folder also holds OpenCode's auth.json; the exporter only opens opencode.db
+      - ${OPENCODE_DATA_DIR:-${USERPROFILE:-${HOME}}/.local/share/opencode}:/data:ro
+      # Only models.json is read, for each model's context limit
+      - ${OPENCODE_CACHE_DIR:-${USERPROFILE:-${HOME}}/.cache/opencode}:/cache:ro
+      # Only the commands folder of OpenCode's config, which also holds settings that can include keys
+      - ${OPENCODE_COMMANDS_DIR:-${USERPROFILE:-${HOME}}/.config/opencode/commands}:/commands:ro
+    environment:
+      - CONTEXT_LIMITS=${CONTEXT_LIMITS:-}
+    ports:
+      # Session detail pages, opened from the dashboard
+      - "127.0.0.1:9101:9101"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=365d"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9091:9090"
+    depends_on:
+      - exporter
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?copy .env.example to .env and set a password}
+    volumes:
+      - ./grafana-datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./Grafana:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

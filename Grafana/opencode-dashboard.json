@@ -1,0 +1,3268 @@
+{
+  "title": "OpenCode - Uso y coste",
+  "uid": "opencode-usage",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "5m",
+  "description": "Uso y coste de OpenCode a partir de su base de datos local. El periodo (o el rango Desde y Hasta si eliges Personalizado) y el proyecto filtran los paneles; el coste es una estimación de OpenCode, no una factura.",
+  "time": {
+    "from": "now-14w",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true
+  },
+  "tags": [
+    "opencode"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Coste estimado",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "description": "Coste que OpenCode estimó para los mensajes del asistente del periodo elegido."
+    },
+    {
+      "id": 2,
+      "title": "Tokens",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 5,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: M",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "description": "Entrada, salida, razonamiento y caché, en millones."
+    },
+    {
+      "id": 3,
+      "title": "USD por millón de tokens",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / (sum(opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 3
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "description": "Precio medio efectivo. Baja si se usan modelos más baratos o más caché."
+    },
+    {
+      "id": 4,
+      "title": "Acierto de caché",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_tokens{project=~\"$project\",type=\"cache_read\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / sum(opencode_day_tokens{project=~\"$project\",type=~\"cache_read|cache_write|input\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "description": "Parte de los tokens de entrada que se leyó de caché: lectura de caché entre lectura, escritura y entrada."
+    },
+    {
+      "id": 5,
+      "title": "Sesiones",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_sessions{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Ver todas las sesiones",
+              "targetBlank": true,
+              "url": "http://localhost:9101/sessions?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "description": "Sesiones principales creadas en el periodo; las de subagente no cuentan. Pulsa la cifra para ver la lista de sesiones."
+    },
+    {
+      "id": 15,
+      "title": "Contexto de las sesiones recientes",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_max(sum by (session, label) (opencode_context_tokens{project=~\"$project\"}) / sum by (session, label) (opencode_context_limit_tokens{project=~\"$project\"}), 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (session, label) (opencode_context_tokens{project=~\"$project\"}) / 1e3",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_min(sum by (session, label) (opencode_context_limit_tokens{project=~\"$project\"}) - sum by (session, label) (opencode_context_tokens{project=~\"$project\"}), 0) / 1e3",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (session, label) (opencode_context_limit_tokens{project=~\"$project\"}) / 1e3",
+          "legendFormat": "",
+          "refId": "D",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sesión"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 560
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Abrir el detalle de la sesión",
+                    "url": "http://localhost:9101/session/${__data.fields.session}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "session"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% usado"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.85
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 220
+              },
+              {
+                "id": "noValue",
+                "value": "Sin límite"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Usado"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: k"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Libre"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: k"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "noValue",
+                "value": "Sin límite"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Límite"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: k"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "noValue",
+                "value": "Sin límite"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "description": "Cuánto del contexto del modelo ocupa el último mensaje de cada una de las cinco sesiones más recientes, y cuánto queda hasta el límite. Pulsa el nombre de una sesión para abrir su detalle en otra pestaña. Sigue el selector de proyecto, no el de periodo. Las sesiones cuyo modelo no tiene límite conocido salen con «Sin límite»; para ver su porcentaje, añade el límite con CONTEXT_LIMITS en .env.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "label": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "session": 5
+            },
+            "renameByName": {
+              "label": "Sesión",
+              "Value #A": "% usado",
+              "Value #B": "Usado",
+              "Value #C": "Libre",
+              "Value #D": "Límite"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "% usado",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "links": [
+        {
+          "title": "Ver todas las sesiones",
+          "targetBlank": true,
+          "url": "http://localhost:9101/sessions?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Cuota y uso por proveedor",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider) (opencode_day_messages{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "1 - opencode_quota_remaining_ratio",
+          "legendFormat": "",
+          "refId": "D",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_used",
+          "legendFormat": "",
+          "refId": "E",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_limit",
+          "legendFormat": "",
+          "refId": "F",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_limit - opencode_quota_used",
+          "legendFormat": "",
+          "refId": "G",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_reset_timestamp_seconds * 1000",
+          "legendFormat": "",
+          "refId": "H",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_updated_timestamp_seconds * 1000",
+          "legendFormat": "",
+          "refId": "I",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "opencode_quota_error",
+          "legendFormat": "",
+          "refId": "J",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "—"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coste"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens (M)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: M"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mensajes"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cuota usada"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.6
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.85
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Usado"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Disponible"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Se restablece"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:YYYY-MM-DD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Dato de"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:YYYY-MM-DD HH:mm"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "description": "Uso del periodo de cada proveedor y, para los que tienen cuota, lo usado, lo disponible y cuándo se restablece. La cuota la lee el exportador de la caché del plugin opencode-quota, así que solo existe para los proveedores que ese plugin soporta y es tan reciente como su última consulta. «—» es un proveedor sin cuota conocida, como los internos o los locales.",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "provider",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(provider|message|Value #[A-I])$"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "provider": 0,
+              "Value #B": 1,
+              "Value #C": 2,
+              "Value #A": 3,
+              "Value #D": 4,
+              "Value #E": 5,
+              "Value #F": 6,
+              "Value #G": 7,
+              "Value #H": 8,
+              "Value #I": 9,
+              "message": 10
+            },
+            "renameByName": {
+              "provider": "Proveedor",
+              "Value #A": "Coste",
+              "Value #B": "Mensajes",
+              "Value #C": "Tokens (M)",
+              "Value #D": "Cuota usada",
+              "Value #E": "Usado",
+              "Value #F": "Total",
+              "Value #G": "Disponible",
+              "Value #H": "Se restablece",
+              "Value #I": "Dato de",
+              "message": "Aviso"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Coste",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Evolución semanal",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 16,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (week) (opencode_weekly_cost_usd{project=~\"$project\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (week) (opencode_weekly_tokens{project=~\"$project\"}) / 1e6",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineWidth": 1,
+            "barWidthFactor": 0.7,
+            "showPoints": "never",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coste"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: M"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 5
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Coste (barras, eje izquierdo) y tokens (línea, eje derecho) por semana, las últimas 13. Sigue el proyecto elegido y no el rango de tiempo.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "week": "Semana",
+              "Value #A": "Coste",
+              "Value #B": "Tokens"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "Semana",
+                "destinationType": "time",
+                "dateFormat": "YYYY-MM-DD"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Semana"
+              }
+            ]
+          }
+        }
+      ],
+      "timeFrom": "14w",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 7,
+      "title": "Coste por agente",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 18,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sort_desc(sum by (agent) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))",
+          "legendFormat": "{{agent}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "minVizHeight": 14,
+        "valueMode": "color"
+      },
+      "description": "plan, build y los agentes propios, en el periodo elegido."
+    },
+    {
+      "id": 8,
+      "title": "Coste por proyecto",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sort_desc(sum by (project) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))",
+          "legendFormat": "{{project}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "minVizHeight": 14,
+        "valueMode": "color"
+      },
+      "description": "Nombre de la carpeta del proyecto; global agrupa lo que OpenCode no asocia a ninguno."
+    },
+    {
+      "id": 9,
+      "title": "Cuota de coste y de tokens por modelo",
+      "type": "barchart",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 11
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(topk(10, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))) / scalar(sum(opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))) or label_replace(clamp_min(1 - sum(topk(10, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))) / sum(opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))), 0), \"model\", \"Otros\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(sum by (model) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / scalar(sum(opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))) and on(model) topk(10, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))) or label_replace(clamp_min(1 - sum(sum by (model) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) and on(model) topk(10, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))) / sum(opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))), 0), \"model\", \"Otros\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cuota del coste"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cuota de tokens"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Modelo",
+        "stacking": "none",
+        "showValue": "auto",
+        "barWidth": 0.85,
+        "groupWidth": 0.75,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0
+      },
+      "description": "Los diez modelos con más coste: su parte del coste total frente a su parte de los tokens. Una barra de tokens mucho mayor que la de coste es un modelo barato; al revés, caro. Otros suma el resto.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "model": "Modelo",
+              "Value #A": "Cuota del coste",
+              "Value #B": "Cuota de tokens"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Cuota del coste",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Detalle por modelo",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 57,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider, model) (opencode_day_messages{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider, model) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / (sum by (provider, model) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6)",
+          "legendFormat": "",
+          "refId": "D",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (provider, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / scalar(sum(opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))",
+          "legendFormat": "",
+          "refId": "E",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coste"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% del coste"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "USD por M tokens"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens (M)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: M"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mensajes"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "Value #A",
+            "Value #B",
+            "Value #C",
+            "Value #E"
+          ],
+          "countRows": false
+        }
+      },
+      "description": "Una fila por proveedor y modelo, de mayor a menor coste, con los totales en el pie.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "model": 0,
+              "provider": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #A": 4,
+              "Value #E": 5,
+              "Value #D": 6
+            },
+            "renameByName": {
+              "model": "Modelo",
+              "provider": "Proveedor",
+              "Value #A": "Coste",
+              "Value #B": "Mensajes",
+              "Value #C": "Tokens (M)",
+              "Value #D": "USD por M tokens",
+              "Value #E": "% del coste"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Coste",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Comandos",
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 9
+      },
+      "description": "Cada comando usado en el periodo con sus activaciones y el coste de los turnos en que se usó; al desplegar una fila se ven el modelo y el agente que respondieron, con su parte del coste. El coste no se puede aislar: incluye el resto del turno. Un comando se reconoce por el principio de su plantilla en el mensaje, así que solo se ven los de la carpeta global de comandos, así que es una cota superior.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (skill, model, agent) (opencode_day_skill_detail_cost_usd{project=~\"$project\",kind=\"command\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (skill, model, agent) (opencode_day_skill_detail_activations{project=~\"$project\",kind=\"command\",result=\"ok\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "kind": true
+            },
+            "renameByName": {
+              "skill": "Nombre",
+              "model": "Modelo",
+              "agent": "Agente",
+              "Value #A": "Coste",
+              "Value #B": "Activaciones"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Coste",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Coste",
+              "operator": "*",
+              "right": "1"
+            },
+            "alias": "Coste por modelo (USD)"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Activaciones",
+              "operator": "*",
+              "right": "1"
+            },
+            "alias": "Activaciones por modelo"
+          }
+        },
+        {
+          "id": "groupToNestedTable",
+          "options": {
+            "showSubframeHeaders": true,
+            "fields": {
+              "Nombre": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Coste": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              },
+              "Activaciones": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Coste (sum)": "Coste",
+              "Activaciones (sum)": "Activaciones"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^Activaciones/"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^Coste/"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Coste",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Skills",
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 24,
+        "h": 9
+      },
+      "description": "Cada skill usado en el periodo con sus activaciones y el coste de los turnos en que se usó; al desplegar una fila se ven el modelo y el agente que respondieron, con su parte del coste. El coste no se puede aislar: incluye el resto del turno, y se reparte a partes iguales si un turno carga varias skills, así que es una cota superior. Errores son las cargas que fallaron.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (skill, model, agent) (opencode_day_skill_detail_cost_usd{project=~\"$project\",kind=\"skill\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (skill, model, agent) (opencode_day_skill_detail_activations{project=~\"$project\",kind=\"skill\",result=\"ok\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (skill, model, agent) (opencode_day_skill_detail_activations{project=~\"$project\",kind=\"skill\",result=\"error\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "kind": true
+            },
+            "renameByName": {
+              "skill": "Nombre",
+              "model": "Modelo",
+              "agent": "Agente",
+              "Value #A": "Coste",
+              "Value #B": "Activaciones",
+              "Value #C": "Errores"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Coste",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Coste",
+              "operator": "*",
+              "right": "1"
+            },
+            "alias": "Coste por modelo (USD)"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Activaciones",
+              "operator": "*",
+              "right": "1"
+            },
+            "alias": "Activaciones por modelo"
+          }
+        },
+        {
+          "id": "groupToNestedTable",
+          "options": {
+            "showSubframeHeaders": true,
+            "fields": {
+              "Nombre": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Coste": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              },
+              "Activaciones": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              },
+              "Errores": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Coste (sum)": "Coste",
+              "Activaciones (sum)": "Activaciones",
+              "Errores (sum)": "Errores"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^Activaciones/"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B877D9"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^Coste/"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5794F2"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Errores"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Coste",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Actividad diaria por modelo",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 67,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "title": "Coste por día y modelo",
+      "type": "barchart",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(sum by (day, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) and on(model) topk(8, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))) or (label_replace(clamp_min(sum by (day) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) - sum by (day) (sum by (day, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) and on(model) topk(8, sum by (model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))))), 0), \"model\", \"Otros\", \"\", \"\"))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xField": "Día",
+        "stacking": "normal",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "xTickLabelRotation": -45,
+        "xTickLabelSpacing": 0
+      },
+      "description": "Coste de cada día del periodo, apilado por los ocho modelos con más coste; Otros suma el resto. Solo salen los días con actividad. La tabla de debajo da los mensajes y los tokens.",
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "model",
+            "rowField": "day",
+            "valueField": "Value"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "day\\model": "Día"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Día"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Actividad por día y modelo",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 78,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (day, provider, model) (opencode_day_messages{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (day, provider, model) (opencode_day_tokens{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / 1e6",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (day, provider, model) (opencode_day_cost_usd{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Coste"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens (M)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: M"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Día",
+            "desc": true
+          }
+        ]
+      },
+      "description": "Mensajes, tokens y coste de cada modelo en cada día del rango elegido. Los días se cuentan en UTC. Usa el filtro de columna para buscar un modelo o un día.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "day": 0,
+              "model": 1,
+              "provider": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5
+            },
+            "renameByName": {
+              "day": "Día",
+              "provider": "Proveedor",
+              "model": "Modelo",
+              "Value #A": "Mensajes",
+              "Value #B": "Tokens (M)",
+              "Value #C": "Coste"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Día",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Mejoras",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 88,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "title": "Mejoras detectadas",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 89,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(coach_findings{window=\"$window\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "noValue": "—",
+          "links": [
+            {
+              "title": "Abrir el informe de mejoras",
+              "targetBlank": true,
+              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Hallazgos del informe de mejoras para el periodo elegido (todos los proyectos). Pulsa para abrir el informe. Con el periodo Personalizado no hay cifra: abre el informe."
+    },
+    {
+      "id": 22,
+      "title": "Impacto estimado",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 89,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(coach_finding_impact_usd{window=\"$window\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "noValue": "—",
+          "decimals": 2,
+          "links": [
+            {
+              "title": "Abrir el informe de mejoras",
+              "targetBlank": true,
+              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Suma del impacto en dólares de los hallazgos del periodo (coste equivalente; órdenes de magnitud, no ahorro garantizado)."
+    },
+    {
+      "id": 23,
+      "title": "Errores evitables de herramientas",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 89,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_tool_errors{project=~\"$project\",error_class!~\"permission_rule|user_rejected|aborted\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) / sum(opencode_day_tool_calls{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "noValue": "—",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Parte de las llamadas a herramientas que fallaron en el periodo, sin contar bloqueos por permisos, rechazos ni interrupciones."
+    },
+    {
+      "id": 24,
+      "title": "Compactaciones e interrupciones",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 89,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_compactions{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "Compactaciones",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(opencode_day_aborted{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "Interrupciones",
+          "refId": "B",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Compactaciones de contexto y respuestas interrumpidas en el periodo."
+    },
+    {
+      "id": 25,
+      "title": "Hallazgos por regla",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 93,
+        "w": 10,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (rule) (coach_findings{window=\"$window\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (rule) (coach_findings{window=\"$window\",severity=\"alta\"})",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (rule) (coach_finding_impact_usd{window=\"$window\"})",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Sin hallazgos en este periodo",
+          "links": [
+            {
+              "title": "Abrir el informe de mejoras",
+              "targetBlank": true,
+              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Impacto"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "rule": "Regla",
+              "Value #A": "Hallazgos",
+              "Value #B": "Severidad alta",
+              "Value #C": "Impacto"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Impacto",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "description": "Hallazgos del informe agrupados por regla, para el periodo elegido. El detalle, con la recomendación y las sesiones de ejemplo, está en el informe."
+    },
+    {
+      "id": 26,
+      "title": "Errores evitables por herramienta y modelo",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 93,
+        "w": 14,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (tool, model) (opencode_day_tool_calls{project=~\"$project\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399))))) and on(tool, model) sum by (tool, model) (opencode_day_tool_errors{project=~\"$project\",error_class!~\"permission_rule|user_rejected|aborted\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (tool, model) (opencode_day_tool_errors{project=~\"$project\",error_class!~\"permission_rule|user_rejected|aborted\"} and on(day) ((opencode_day_start_seconds > ((($window > bool 0) * (time() - $window * 86400) + ($window == bool 0) * $desde) - 86400)) and (opencode_day_start_seconds <= (($window > bool 0) * time() + ($window == bool 0) * ($hasta + 86399)))))",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tasa"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "#FF9830",
+                      "value": 0.05
+                    },
+                    {
+                      "color": "#F2495C",
+                      "value": 0.15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Value #B",
+              "operator": "/",
+              "right": "Value #A"
+            },
+            "alias": "Tasa",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "tool": "Herramienta",
+              "model": "Modelo",
+              "Value #A": "Llamadas",
+              "Value #B": "Errores"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Errores",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "description": "Herramientas y modelos con algún error en el periodo, sin bloqueos por permisos, rechazos ni interrupciones. Naranja desde el 5 % y rojo desde el 15 %: ahí suele compensar una regla en AGENTS.md o cambiar de modelo."
+    },
+    {
+      "id": 27,
+      "title": "Coste por mensaje de cada agente, por semana",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 101,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (week, agent) (opencode_weekly_agent_cost_usd{project=~\"$project\"}) / sum by (week, agent) (opencode_weekly_agent_messages{project=~\"$project\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "barWidthFactor": 0.7
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Coste medio por mensaje de cada agente, las últimas 13 semanas. Sirve para comprobar si cambiar el modelo de un agente baja su coste. Sigue el proyecto elegido, no el periodo.",
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "agent",
+            "rowField": "week",
+            "valueField": "Value"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "week\\agent": "Semana"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "Semana",
+                "destinationType": "time",
+                "dateFormat": "YYYY-MM-DD"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Semana"
+              }
+            ]
+          }
+        }
+      ],
+      "timeFrom": "14w",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 28,
+      "title": "Errores evitables por herramienta, por semana",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 101,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "((sum by (week, tool) (opencode_weekly_tool_errors{project=~\"$project\",error_class!~\"permission_rule|user_rejected|aborted\"}) or (sum by (week, tool) (opencode_weekly_tool_calls{project=~\"$project\"}) * 0)) / sum by (week, tool) (opencode_weekly_tool_calls{project=~\"$project\"})) and on(tool) topk(5, sum by (tool) (opencode_weekly_tool_errors{project=~\"$project\",error_class!~\"permission_rule|user_rejected|aborted\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "barWidthFactor": 0.7
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Tasa de error semanal de las cinco herramientas con más errores evitables, las últimas 13 semanas. Sirve para ver si una regla nueva o un cambio de modelo reduce los fallos.",
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "tool",
+            "rowField": "week",
+            "valueField": "Value"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "week\\tool": "Semana"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "Semana",
+                "destinationType": "time",
+                "dateFormat": "YYYY-MM-DD"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Semana"
+              }
+            ]
+          }
+        }
+      ],
+      "timeFrom": "14w",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 29,
+      "title": "Compactaciones e interrupciones, por semana",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 110,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (week) (opencode_weekly_compactions{project=~\"$project\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (week) (opencode_weekly_aborted{project=~\"$project\"})",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "barWidthFactor": 0.7
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Compactaciones de contexto y respuestas interrumpidas por semana, las últimas 13.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "week": "Semana",
+              "Value #A": "Compactaciones",
+              "Value #B": "Interrupciones"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "Semana",
+                "destinationType": "time",
+                "dateFormat": "YYYY-MM-DD"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Semana"
+              }
+            ]
+          }
+        }
+      ],
+      "timeFrom": "14w",
+      "hideTimeOverride": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "window",
+        "label": "Periodo",
+        "type": "custom",
+        "query": "Últimos 7 días : 7, Últimos 30 días : 30, Últimos 90 días : 90, Todo el historial : 36500, Personalizado : 0",
+        "options": [
+          {
+            "text": "Últimos 7 días",
+            "value": "7",
+            "selected": false
+          },
+          {
+            "text": "Últimos 30 días",
+            "value": "30",
+            "selected": false
+          },
+          {
+            "text": "Últimos 90 días",
+            "value": "90",
+            "selected": false
+          },
+          {
+            "text": "Todo el historial",
+            "value": "36500",
+            "selected": true
+          },
+          {
+            "text": "Personalizado",
+            "value": "0",
+            "selected": false
+          }
+        ],
+        "current": {
+          "selected": true,
+          "text": "Todo el historial",
+          "value": "36500"
+        },
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "desde",
+        "label": "Desde (Personalizado)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "query_result(sort(opencode_day_start_seconds))",
+          "refId": "desde"
+        },
+        "definition": "query_result(sort(opencode_day_start_seconds))",
+        "regex": "/day=\"(?<text>[^\"]+)\".*\\} (?<value>\\d+)/",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "sort": 0
+      },
+      {
+        "name": "hasta",
+        "label": "Hasta (Personalizado)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "query_result(sort_desc(opencode_day_start_seconds))",
+          "refId": "hasta"
+        },
+        "definition": "query_result(sort_desc(opencode_day_start_seconds))",
+        "regex": "/day=\"(?<text>[^\"]+)\".*\\} (?<value>\\d+)/",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "sort": 0
+      },
+      {
+        "name": "project",
+        "label": "Proyecto",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(opencode_day_cost_usd, project)",
+          "refId": "project"
+        },
+        "definition": "label_values(opencode_day_cost_usd, project)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Informe de mejoras (.md)",
+      "type": "link",
+      "icon": "doc",
+      "targetBlank": true,
+      "tooltip": "Descarga un informe con el periodo y los proyectos elegidos, para compartirlo con una IA",
+      "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": false,
+      "tags": []
+    }
+  ]
+}

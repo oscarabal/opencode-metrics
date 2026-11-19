@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 30s
+  # The exporter reads OpenCode's database through a Docker bind mount, which is slow on Windows
+  scrape_timeout: 25s
+
+scrape_configs:
+  - job_name: "opencode"
+    static_configs:
+      - targets: ["exporter:9101"]
