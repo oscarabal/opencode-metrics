@@ -159,7 +159,8 @@ def build(conn, helpers, since, until, label, projects=None, anon=False, now=Non
     msgs, sessions, calls, compactions = loaded or load(conn, helpers)
     commands = commands_by_message(helpers)
     keep = (lambda p: p in projects) if projects else (lambda p: True)
-    first = min((m.time for m in msgs), default=since)
+    # first activity of the chosen projects, so a project that started later has no empty previous period
+    first = min((m.time for m in msgs if m.session in sessions and keep(sessions[m.session]["project"])), default=since)
     since = max(since, first - first % 86400000)
     span = until - since
     cur = Period(msgs, sessions, calls, compactions, since, until, keep, commands)
