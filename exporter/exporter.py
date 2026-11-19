@@ -16,6 +16,7 @@ import urllib.parse
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import report_page
 import session_page
 from coach import index as coach_index, metrics as coach_metrics, render as coach_render, report as coach_report
 
@@ -805,6 +806,9 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if parsed.path.rstrip("/") == "/report":
+            self.report_view(parsed)
+            return
         if parsed.path.rstrip("/") in ("/report.md", "/report.json"):
             self.report(parsed)
             return
@@ -863,6 +867,28 @@ class Handler(BaseHTTPRequestHandler):
             body, ctype = ("Error: %s" % e).encode(), "text/plain; charset=utf-8"
             self.send_response(500)
         self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def report_view(self, parsed):
+        """The improvement report as a web page, opened from the dashboard, with a button to download its Markdown."""
+        query = urllib.parse.parse_qs(parsed.query)
+        anon = query.get("anon", ["0"])[0] == "1"
+        other = {k: v for k, v in query.items() if k != "anon"}
+        if not anon:
+            other["anon"] = ["1"]
+        anon_href = "?" + urllib.parse.urlencode(other, doseq=True)
+        try:
+            md = coach_render.render(report_for(query, fresh=True))
+            filename = "opencode-informe-%s.md" % time.strftime("%Y-%m-%d")
+            download = "/report.md" + ("?" + parsed.query if parsed.query else "")
+            body = report_page.render(md, filename, GRAFANA_URL, download, anon, anon_href).encode()
+            self.send_response(200)
+        except Exception as ex:
+            body = report_page.error("Error: %s" % ex, GRAFANA_URL).encode()
+            self.send_response(500)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

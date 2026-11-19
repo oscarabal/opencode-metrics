@@ -153,7 +153,7 @@ Prometheus solo guarda lo que ve mientras la pila funciona, así que no puede re
 
 ## Dashboard
 
-«OpenCode - Uso y coste» tiene 26 paneles: cinco cifras de resumen, una tabla con el contexto de las sesiones recientes, otra con la cuota y el uso por proveedor, un gráfico semanal, el coste por agente y por proyecto, una comparación de coste y tokens por modelo, dos tablas anidadas, una de comandos y otra de skills, con el modelo y el agente de cada una, una tabla de detalle, en una fila que se puede plegar, un gráfico y una tabla de la actividad diaria por modelo, y una última fila, «Mejoras», con diez paneles que resumen el informe de mejoras, con la lista de hallazgos, y siguen sus señales semana a semana. Arriba a la derecha, el enlace «Informe de mejoras (.md)» descarga el informe. La explicación de cada panel está en la guía del dashboard.
+«OpenCode - Uso y coste» tiene 26 paneles: cinco cifras de resumen, una tabla con el contexto de las sesiones recientes, otra con la cuota y el uso por proveedor, un gráfico semanal, el coste por agente y por proyecto, una comparación de coste y tokens por modelo, dos tablas anidadas, una de comandos y otra de skills, con el modelo y el agente de cada una, una tabla de detalle, en una fila que se puede plegar, un gráfico y una tabla de la actividad diaria por modelo, y una última fila, «Mejoras», con diez paneles que resumen el informe de mejoras, con la lista de hallazgos, y siguen sus señales semana a semana. Arriba a la derecha, el enlace «Informe de mejoras» abre el informe en una pestaña nueva, desde la que se descarga. La explicación de cada panel está en la guía del dashboard.
 
 ### Selectores
 
@@ -201,7 +201,7 @@ El exportador incluye un módulo, `exporter/coach/`, que analiza el uso, detecta
 | `coach/render.py` | Pinta ese diccionario en Markdown, con las instrucciones para la IA, o en JSON |
 | `coach/cli.py` | Línea de comandos |
 
-**Salidas.** `/report.md` y `/report.json` en el puerto del exportador, con los mismos parámetros que `/sessions` (`window`, `from`, `to`, `project`) más `anon=1`; un enlace del dashboard, «Informe de mejoras (.md)», que construye esa dirección con los selectores; y `docker compose exec exporter python /app/coach/cli.py report`. Las tres llaman a la misma función. Además, `/coach/summary`, `/coach/findings` y `/coach/rules`, con los mismos parámetros, devuelven partes del informe como tablas JSON para los paneles de hallazgos de la fila «Mejoras». Esas tres no leen la base de datos: calculan el informe con los datos que el hilo de fondo guardó en su última lectura (mensajes, sesiones, llamadas a herramientas y compactaciones), y un informe ya calculado con esos datos para el mismo periodo, proyectos y `anon` se reutiliza durante dos minutos. `/report.md` y `/report.json` sí leen la base en el momento.
+**Salidas.** `/report` (el informe como página HTML, con botones para descargar el .md, copiarlo y anonimizarlo; lo genera `exporter/report_page.py` a partir del mismo Markdown, sin librerías), `/report.md` y `/report.json` en el puerto del exportador, con los mismos parámetros que `/sessions` (`window`, `from`, `to`, `project`) más `anon=1`; un enlace del dashboard, «Informe de mejoras», y las cifras de la fila «Mejoras», que construyen la dirección de `/report` con los selectores y la abren en una pestaña nueva; y `docker compose exec exporter python /app/coach/cli.py report`. Las tres llaman a la misma función. Además, `/coach/summary`, `/coach/findings` y `/coach/rules`, con los mismos parámetros, devuelven partes del informe como tablas JSON para los paneles de hallazgos de la fila «Mejoras». Esas tres no leen la base de datos: calculan el informe con los datos que el hilo de fondo guardó en su última lectura (mensajes, sesiones, llamadas a herramientas y compactaciones), y un informe ya calculado con esos datos para el mismo periodo, proyectos y `anon` se reutiliza durante dos minutos. `/report`, `/report.md` y `/report.json` sí leen la base en el momento. La descarga desde `/report` guarda exactamente el texto mostrado, sin volver a pedirlo al exportador.
 
 **Reglas (detectores).**
 
@@ -246,6 +246,7 @@ Cada hallazgo lleva evidencia, recomendación, impacto y hasta cinco sesiones de
 | `docker-compose.yml` | Define los tres servicios, puertos y volúmenes. Monta en solo lectura la carpeta de datos y la de caché de OpenCode. |
 | `exporter/exporter.py` | Exportador SQLite → Prometheus; sirve también las páginas de sesión, el informe y `/coach/...` para la fila «Mejoras». |
 | `exporter/session_page.py` | Pintado de las páginas de sesión y de la lista de sesiones. |
+| `exporter/report_page.py` | Página `/report`: el informe de mejoras en HTML con botones para descargarlo y copiarlo. |
 | `exporter/coach/` | Informe de mejoras: análisis, reglas, Markdown, JSON y línea de comandos. |
 | `prometheus.yml` | Lectura del exportador cada 30 s. |
 | `grafana-datasource.yaml` | Datasources provisionados: Prometheus y Coach (Infinity, limitado a `http://exporter:9101`). |

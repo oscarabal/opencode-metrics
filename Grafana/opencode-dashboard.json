@@ -2356,7 +2356,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+              "url": "http://localhost:9101/report?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
             }
           ]
         },
@@ -2425,7 +2425,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+              "url": "http://localhost:9101/report?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
             }
           ]
         },
@@ -2608,7 +2608,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+              "url": "http://localhost:9101/report?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
             }
           ]
         },
@@ -2853,7 +2853,7 @@
             {
               "title": "Abrir el informe de mejoras",
               "targetBlank": true,
-              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+              "url": "http://localhost:9101/report?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
             }
           ]
         },
@@ -3436,12 +3436,12 @@
   },
   "links": [
     {
-      "title": "Informe de mejoras (.md)",
+      "title": "Informe de mejoras",
       "type": "link",
       "icon": "doc",
       "targetBlank": true,
-      "tooltip": "Descarga un informe con el periodo y los proyectos elegidos, para compartirlo con una IA",
-      "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+      "tooltip": "Abre en una pestaña nueva el informe con el periodo y los proyectos elegidos; desde ahí se descarga en .md para compartirlo con una IA",
+      "url": "http://localhost:9101/report?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
       "asDropdown": false,
       "includeVars": false,
       "keepTime": false,

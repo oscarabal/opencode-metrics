@@ -19,7 +19,7 @@ flowchart TD
     S -- "volver" --> D
     S2 -- "sesión padre" --> S
     L -- "volver" --> D
-    D -- "enlace Informe de mejoras y cifras de la fila Mejoras" --> R["/report.md: informe para compartir con una IA"]
+    D -- "enlace Informe de mejoras y cifras de la fila Mejoras" --> R["/report: informe en una pestaña nueva, con botón para descargar el .md"]
 ```
 
 ## Selectores
@@ -90,7 +90,7 @@ Un turno son todos los mensajes del asistente que responden a un mismo mensaje t
 
 ### Mejoras
 
-La última fila resume el informe de mejoras: lo que el usuario puede cambiar (reglas en AGENTS.md, modelos de agentes y comandos, hábitos al escribir prompts) para gastar menos y que los agentes fallen menos. Sirve también para comprobar, semanas después, si un cambio funcionó. El informe completo, con la recomendación de cada hallazgo y sesiones de ejemplo, se descarga con el enlace **Informe de mejoras (.md)** de arriba a la derecha o pulsando las cifras de esta fila.
+La última fila resume el informe de mejoras: lo que el usuario puede cambiar (reglas en AGENTS.md, modelos de agentes y comandos, hábitos al escribir prompts) para gastar menos y que los agentes fallen menos. Sirve también para comprobar, semanas después, si un cambio funcionó. El informe completo, con la recomendación de cada hallazgo y sesiones de ejemplo, se abre en una pestaña nueva con el enlace **Informe de mejoras** de arriba a la derecha o pulsando las cifras de esta fila. En esa página las sesiones de ejemplo enlazan con su detalle, y los botones de arriba descargan el informe (.md), copian su Markdown u ocultan los nombres de proyecto antes de compartirlo.
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |

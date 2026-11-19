@@ -73,8 +73,8 @@ El exportador analiza tu uso y genera un informe en Markdown pensado para pegarl
 
 Tres formas de obtenerlo, con el mismo contenido:
 
-- **Grafana:** el enlace **Informe de mejoras (.md)**, arriba a la derecha del dashboard, lo descarga con el periodo y los proyectos elegidos.
-- **Navegador:** `http://localhost:9101/report.md?window=30`. Admite `window` (días; `36500` es todo el historial), o `window=0` con `from` y `to` en tiempo Unix, `project` (uno o varios separados por comas) y `anon=1`, que sustituye los nombres de proyecto por `proyecto-1`, `proyecto-2`… `/report.json` devuelve los mismos datos en JSON.
+- **Grafana:** el enlace **Informe de mejoras**, arriba a la derecha del dashboard, y las cifras de la fila «Mejoras» lo abren en una pestaña nueva (`/report`) con el periodo y los proyectos elegidos. Esa página muestra el informe, enlaza cada sesión de ejemplo con su detalle y tiene un botón **Descargar informe (.md)**, otro para copiar el Markdown y otro para ocultar los nombres de proyecto.
+- **Navegador:** `http://localhost:9101/report?window=30` lo muestra como página; `http://localhost:9101/report.md?window=30` lo descarga directamente. Las dos admiten `window` (días; `36500` es todo el historial), o `window=0` con `from` y `to` en tiempo Unix, `project` (uno o varios separados por comas) y `anon=1`, que sustituye los nombres de proyecto por `proyecto-1`, `proyecto-2`… `/report.json` devuelve los mismos datos en JSON.
 - **Consola:** `docker compose exec exporter python /app/coach/cli.py report --window 30 > informe.md`. Admite también `--from` y `--to` (AAAA-MM-DD), `--project`, `--anon` y `--format json`.
 
 Para reconocer las causas de los errores, el exportador lee el mensaje de error de cada herramienta y lo reduce a una clase (`not_found`, `patch_mismatch`, `permission_rule`…); el texto del error no se guarda ni aparece en el informe. El impacto en dólares de cada hallazgo es un orden de magnitud sobre el coste estimado de OpenCode, no un ahorro garantizado.
@@ -121,7 +121,7 @@ Arriba hay tres selectores. **Periodo** ofrece los últimos 7, 30 o 90 días, to
 
 > En el formato numérico en español de Grafana «Mil» significa millones. El dashboard muestra los tokens en millones o en miles con el sufijo «M» o «k» para evitar la confusión.
 
-La última fila, **Mejoras**, resume el informe de mejoras y sirve para comprobar después si un cambio funcionó. El enlace **Informe de mejoras (.md)**, arriba a la derecha, descarga el informe completo. Los paneles de hallazgos (Mejoras detectadas, Impacto estimado, Hallazgos por regla y Hallazgos) leen el informe del exportador (`/coach/...`) con el datasource Infinity de Grafana, que Grafana instala al arrancar, así que siguen el periodo, también el Personalizado, y los proyectos elegidos. Calculan el informe con los datos que leyó por última vez el hilo de fondo del exportador, como mucho de hace unos dos minutos, y por eso cargan en décimas de segundo; el informe que se descarga lee siempre la base de datos en ese momento.
+La última fila, **Mejoras**, resume el informe de mejoras y sirve para comprobar después si un cambio funcionó. El enlace **Informe de mejoras**, arriba a la derecha, abre el informe completo en una pestaña nueva, desde la que se descarga en .md. Los paneles de hallazgos (Mejoras detectadas, Impacto estimado, Hallazgos por regla y Hallazgos) leen el informe del exportador (`/coach/...`) con el datasource Infinity de Grafana, que Grafana instala al arrancar, así que siguen el periodo, también el Personalizado, y los proyectos elegidos. Calculan el informe con los datos que leyó por última vez el hilo de fondo del exportador, como mucho de hace unos dos minutos, y por eso cargan en décimas de segundo; el informe que se descarga lee siempre la base de datos en ese momento.
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |
@@ -180,6 +180,7 @@ La última fila, **Mejoras**, resume el informe de mejoras y sirve para comproba
 docker-compose.yml          servicios, puertos y volúmenes
 exporter/exporter.py        exportador SQLite → Prometheus y páginas de sesión
 exporter/session_page.py    HTML de la página de detalle de sesión
+exporter/report_page.py     página HTML del informe de mejoras, con el botón de descarga
 exporter/coach/             informe de mejoras: análisis, reglas, Markdown y consola
 prometheus.yml              lectura del exportador
 grafana-datasource.yaml     datasources provisionados (Prometheus y Coach)

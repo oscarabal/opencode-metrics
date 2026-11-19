@@ -73,8 +73,8 @@ The exporter analyses your usage and builds a Markdown report meant to be pasted
 
 Three ways to get it, with the same content:
 
-- **Grafana:** the **Informe de mejoras (.md)** link, at the top right of the dashboard, downloads it for the selected period and projects.
-- **Browser:** `http://localhost:9101/report.md?window=30`. It takes `window` (days; `36500` is all history), or `window=0` with `from` and `to` as Unix time, `project` (one or several, comma-separated) and `anon=1`, which replaces project names with `proyecto-1`, `proyecto-2`… `/report.json` returns the same data as JSON.
+- **Grafana:** the **Informe de mejoras** link, at the top right of the dashboard, and the figures of the «Mejoras» row open it in a new tab (`/report`) for the selected period and projects. That page shows the report, links each example session to its detail page and has a **Descargar informe (.md)** button, plus another to copy the Markdown and one to hide project names.
+- **Browser:** `http://localhost:9101/report?window=30` shows it as a page; `http://localhost:9101/report.md?window=30` downloads it directly. Both take `window` (days; `36500` is all history), or `window=0` with `from` and `to` as Unix time, `project` (one or several, comma-separated) and `anon=1`, which replaces project names with `proyecto-1`, `proyecto-2`… `/report.json` returns the same data as JSON.
 - **Command line:** `docker compose exec exporter python /app/coach/cli.py report --window 30 > report.md`. It also takes `--from` and `--to` (YYYY-MM-DD), `--project`, `--anon` and `--format json`.
 
 To tell the causes of errors apart, the exporter reads each tool's error message and reduces it to a class (`not_found`, `patch_mismatch`, `permission_rule`…); the error text is neither kept nor shown in the report. The dollar impact of each finding is an order of magnitude based on OpenCode's estimated cost, not a guaranteed saving.
@@ -121,7 +121,7 @@ Three selectors sit at the top. **Periodo** offers the last 7, 30 or 90 days, al
 
 > In Grafana's Spanish number format «Mil» means millions. The dashboard shows tokens in millions or thousands with an «M» or «k» suffix to avoid the confusion.
 
-The last row, **Mejoras**, summarises the improvement report and lets you check afterwards whether a change worked. The **Informe de mejoras (.md)** link, at the top right, downloads the full report. The findings panels (Mejoras detectadas, Impacto estimado, Hallazgos por regla and Hallazgos) read the report from the exporter (`/coach/...`) through Grafana's Infinity datasource, which Grafana installs at startup, so they follow the period, including Personalizado, and the projects you choose. They build the report from the data the exporter's background thread read last, at most about two minutes old, so they load in a fraction of a second; the downloaded report always reads the database at that moment.
+The last row, **Mejoras**, summarises the improvement report and lets you check afterwards whether a change worked. The **Informe de mejoras** link, at the top right, opens the full report in a new tab, where it can be downloaded as .md. The findings panels (Mejoras detectadas, Impacto estimado, Hallazgos por regla and Hallazgos) read the report from the exporter (`/coach/...`) through Grafana's Infinity datasource, which Grafana installs at startup, so they follow the period, including Personalizado, and the projects you choose. They build the report from the data the exporter's background thread read last, at most about two minutes old, so they load in a fraction of a second; the downloaded report always reads the database at that moment.
 
 | Panel | Type | What it shows | What it is for |
 | --- | --- | --- | --- |
@@ -180,6 +180,7 @@ The last row, **Mejoras**, summarises the improvement report and lets you check 
 docker-compose.yml          services, ports and volumes
 exporter/exporter.py        SQLite → Prometheus exporter, and the session pages
 exporter/session_page.py    HTML of the session detail page
+exporter/report_page.py     HTML page of the improvement report, with the download button
 exporter/coach/             improvement report: analysis, rules, Markdown and command line
 prometheus.yml              scrape of the exporter
 grafana-datasource.yaml     provisioned datasources (Prometheus and Coach)
