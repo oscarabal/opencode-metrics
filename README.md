@@ -111,9 +111,7 @@ To tell the causes of errors apart, the exporter reads each tool's error message
 | `opencode_weekly_agent_cost_usd`, `opencode_weekly_agent_messages` | gauge | `week`, `agent`, `project` | Cost and messages per week and agent, last 13 weeks |
 | `opencode_weekly_tool_calls`, `opencode_weekly_tool_errors` | gauge | `week`, `tool` (and `error_class`), `project` | Calls and errors per week and tool |
 | `opencode_weekly_compactions`, `opencode_weekly_aborted` | gauge | `week`, `project` | Compactions and interruptions per week |
-| `coach_findings` | gauge | `window`, `detector`, `rule`, `severity` | Findings of the improvement report for each dashboard period (7, 30, 90 days and all history); recomputed every 10 minutes |
-| `coach_finding_impact_usd` | gauge | `window`, `detector`, `rule` | Estimated impact of those findings |
-| `coach_index_ready`, `coach_findings_updated_timestamp_seconds` | gauge | none | The tool index has been read; when the findings were computed |
+| `coach_index_ready`, `coach_series_updated_timestamp_seconds` | gauge | none | The tool index has been read; when the «Mejoras» series were last computed |
 
 `project` is the name of the project folder; sessions OpenCode does not tie to a project are reported as `global`.
 
@@ -123,7 +121,7 @@ Three selectors sit at the top. **Periodo** offers the last 7, 30 or 90 days, al
 
 > In Grafana's Spanish number format «Mil» means millions. The dashboard shows tokens in millions or thousands with an «M» or «k» suffix to avoid the confusion.
 
-The last row, **Mejoras**, summarises the improvement report and lets you check afterwards whether a change worked. The **Informe de mejoras (.md)** link, at the top right, downloads the full report.
+The last row, **Mejoras**, summarises the improvement report and lets you check afterwards whether a change worked. The **Informe de mejoras (.md)** link, at the top right, downloads the full report. The findings panels (Mejoras detectadas, Impacto estimado, Hallazgos por regla and Hallazgos) read the report from the exporter (`/coach/...`) through Grafana's Infinity datasource, which Grafana installs at startup, so they follow the period, including Personalizado, and the projects you choose. They build the report from the data the exporter's background thread read last, at most about two minutes old, so they load in a fraction of a second; the downloaded report always reads the database at that moment.
 
 | Panel | Type | What it shows | What it is for |
 | --- | --- | --- | --- |
@@ -143,10 +141,11 @@ The last row, **Mejoras**, summarises the improvement report and lets you check 
 | Detalle por modelo | Table | Messages, tokens, cost, share of cost and USD per million tokens for each provider and model, with totals in the footer | The exact figures behind the charts |
 | Coste por día y modelo | Stacked bars | Cost of each day of the period, stacked by the eight models with the highest cost; `Otros` adds up the rest; only days with activity appear | Shows which model drove each day's spend; readable for 7 to 90 days, crowded for all history |
 | Actividad por día y modelo | Table | Messages, tokens and cost of each model on each day of the period, with a column filter | Answers "did I use model X on day Y" |
-| Mejoras detectadas and Impacto estimado | Stats | Findings of the improvement report in the period and the sum of their dollar impact; clicking opens the report | How much there is to improve; no figure with the custom period |
+| Mejoras detectadas and Impacto estimado | Stats | Findings of the improvement report in the period and projects chosen and the sum of their dollar impact; clicking opens the report | How much there is to improve |
 | Errores evitables de herramientas | Stat | Share of tool calls that failed in the period, without permission blocks, rejections or interruptions | Overall health of tool use |
 | Compactaciones e interrupciones | Double stat | Context compactions and interrupted answers in the period | Signs of sessions that run too long or prompts that start badly |
 | Hallazgos por regla | Table | Findings, how many are high severity, and impact, per report rule | Which kind of improvement weighs most |
+| Hallazgos | Table | Each finding, from most to least severe: rule, what happens, impact, cases, recommendation and evidence | What to change, without downloading the report |
 | Errores evitables por herramienta y modelo | Table | Calls, errors and rate of each tool with each model that failed; orange from 5 %, red from 15 % | Where a rule in AGENTS.md or another model pays off |
 | Coste por mensaje de cada agente, por semana | Lines | Average cost per message of each agent, last 13 weeks | Checks whether changing an agent's model lowers its cost |
 | Errores evitables por herramienta, por semana | Lines | Weekly error rate of the five tools with most errors | Checks whether a new rule or another model reduces failures |
@@ -183,7 +182,7 @@ exporter/exporter.py        SQLite → Prometheus exporter, and the session page
 exporter/session_page.py    HTML of the session detail page
 exporter/coach/             improvement report: analysis, rules, Markdown and command line
 prometheus.yml              scrape of the exporter
-grafana-datasource.yaml     provisioned datasource
+grafana-datasource.yaml     provisioned datasources (Prometheus and Coach)
 grafana-dashboards.yaml     dashboard provider
 Grafana/                    dashboard JSON
 .env.example                variables to copy into .env

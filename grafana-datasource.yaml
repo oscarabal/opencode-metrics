@@ -6,3 +6,11 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+  # The exporter's improvement report, read by the «Mejoras» panels with the dashboard's period and projects
+  - name: Coach
+    uid: coach
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    jsonData:
+      allowedHosts:
+        - http://exporter:9101

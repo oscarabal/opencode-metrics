@@ -94,17 +94,18 @@ La última fila resume el informe de mejoras: lo que el usuario puede cambiar (r
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |
-| Mejoras detectadas | Cifra | Número de hallazgos del informe en el periodo elegido, de todos los proyectos. | Cuánto hay por mejorar. Con el periodo Personalizado no hay cifra: abre el informe. |
+| Mejoras detectadas | Cifra | Número de hallazgos del informe en el periodo y los proyectos elegidos, también con el periodo Personalizado. | Cuánto hay por mejorar. |
 | Impacto estimado | Cifra | Suma del impacto en dólares de esos hallazgos. | Un orden de magnitud del gasto evitable, en coste equivalente; no es un ahorro garantizado. |
 | Errores evitables de herramientas | Cifra | Parte de las llamadas a herramientas que fallaron, sin bloqueos por permisos, rechazos ni interrupciones. | La salud general del uso de herramientas en el periodo y el proyecto elegidos. |
 | Compactaciones e interrupciones | Cifra doble | Compactaciones de contexto y respuestas interrumpidas en el periodo. | Muchas compactaciones apuntan a sesiones demasiado largas; muchas interrupciones, a prompts que arrancan mal. |
 | Hallazgos por regla | Tabla | Por cada regla del informe: hallazgos, cuántos son de severidad alta e impacto. | Qué tipo de mejora pesa más. |
+| Hallazgos | Tabla | Cada hallazgo, de mayor a menor severidad (alta en rojo, media en naranja): regla, qué pasa, impacto, casos, recomendación y evidencia. | Qué cambiar sin descargar el informe. Pasa el ratón por una celda o usa «Inspect» para leer los textos largos; el informe añade sesiones de ejemplo. |
 | Errores evitables por herramienta y modelo | Tabla | Llamadas, errores y tasa de cada combinación de herramienta y modelo que haya fallado; naranja desde el 5 % y rojo desde el 15 %. | Dónde compensa una regla en AGENTS.md o usar otro modelo para esa herramienta. |
 | Coste por mensaje de cada agente, por semana | Líneas | Coste medio por mensaje de cada agente, las últimas 13 semanas. | Comprueba si cambiar el modelo de un agente baja su coste. Sigue el proyecto, no el periodo. |
 | Errores evitables por herramienta, por semana | Líneas | Tasa de error semanal de las cinco herramientas con más errores evitables. | Comprueba si una regla nueva o un cambio de modelo reduce los fallos. |
 | Compactaciones e interrupciones, por semana | Barras | Las dos cifras por semana, las últimas 13. | La tendencia de esas dos señales. |
 
-Las cifras de hallazgos se recalculan cada 10 minutos, y el resto de series de la fila cada 2, para los periodos de 7, 30 y 90 días y todo el historial, y no se filtran por proyecto; el resto de paneles sí sigue el proyecto elegido.
+Los cuatro paneles de hallazgos (Mejoras detectadas, Impacto estimado, Hallazgos por regla y Hallazgos) calculan el informe al abrir el dashboard, con el periodo y los proyectos elegidos, igual que el informe que se descarga, pero con los datos que el exportador leyó por última vez, como mucho de hace unos dos minutos; así cargan en décimas de segundo. Si esos datos tienen más de 30 segundos, el exportador los vuelve a leer en segundo plano para la siguiente consulta. El informe descargado lee siempre la base de datos en el momento. El resto de paneles de la fila sale de Prometheus, cuyas series se recalculan cada 2 minutos.
 
 ## Detalle de una sesión
 

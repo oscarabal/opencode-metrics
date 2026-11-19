@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 import urllib.parse
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import session_page
@@ -326,6 +327,7 @@ def refresh_skill_calls():
 
 
 def skill_loop():
+    woken = False
     while True:
         try:
             refresh_skill_calls()
@@ -335,13 +337,14 @@ def skill_loop():
             c = connect()
             try:
                 coach_index.INDEX.refresh(c)
-                # series and findings for the «Mejoras» row, cached so a scrape never computes them
-                coach_metrics.refresh(c, sys.modules[__name__], WEEKS)
+                # series for the «Mejoras» row and the data its findings panels build the report from,
+                # cached so neither a scrape nor a panel reads the database
+                coach_metrics.refresh(c, sys.modules[__name__], WEEKS, force=woken)
             finally:
                 c.close()
         except Exception:
             pass
-        time.sleep(30)
+        woken = coach_metrics.wait(30)
 
 
 def skill_usage(c):
@@ -696,6 +699,88 @@ def list_range(query):
     return start, end, "del %s al %s (UTC)" % (time.strftime("%Y-%m-%d", time.gmtime(start / 1000)), time.strftime("%Y-%m-%d", time.gmtime((end - 86399000) / 1000)))
 
 
+REPORT_CACHE_SECONDS = 120
+# Older than this, the data a panel's report is built from is served anyway and read again in the background
+SNAPSHOT_FRESH_SECONDS = 30
+# Reports already built for the «Mejoras» panels, which ask several at a time per dashboard load
+_REPORTS, _REPORTS_LOCK, _BUILD_LOCK = {}, threading.Lock(), threading.Lock()
+
+
+def report_args(query):
+    """Period, label, projects and anonymisation of a report request (window or from/to, project, anon)."""
+    since, until, label = list_range(query)
+    label = label.replace("de los ", "").replace("de todo el historial", "todo el historial")
+    raw = ",".join(query.get("project", []))
+    projects = {p for p in re.split(r"[,|]", raw) if p and p not in (".*", "All", "$__all")}
+    return since, until, label, projects, query.get("anon", ["0"])[0] == "1"
+
+
+def build_report(since, until, label, projects, anon, loaded=None):
+    c = connect()
+    try:
+        return coach_report.build(c, sys.modules[__name__], since, until, label, projects or None, anon, loaded=loaded)
+    finally:
+        c.close()
+
+
+def report_for(query, fresh=False):
+    """The improvement report for a query string.
+
+    `fresh` (the downloaded report) reads the database now. Otherwise (the dashboard's panels) the
+    report is built from the data the background thread last read, at most about two minutes old,
+    which takes a fraction of a second instead of seconds; if that data is older than
+    SNAPSHOT_FRESH_SECONDS the thread is asked to read it again for the next request.
+    """
+    since, until, label, projects, anon = report_args(query)
+    loaded, read_at = (None, 0) if fresh else coach_metrics.snapshot()
+    if loaded is None:  # the downloaded report, or the thread has not finished its first reading
+        return build_report(since, until, label, projects, anon)
+    if time.time() - read_at > SNAPSHOT_FRESH_SECONDS:
+        coach_metrics.request_refresh()
+    key = (since // 60000, until // 60000, tuple(sorted(projects)), anon, read_at)
+    with _BUILD_LOCK:
+        now = time.time()
+        with _REPORTS_LOCK:
+            hit = _REPORTS.get(key)
+            if hit and now - hit[0] < REPORT_CACHE_SECONDS:
+                return hit[1]
+        data = build_report(since, until, label, projects, anon, loaded)
+        with _REPORTS_LOCK:
+            _REPORTS[key] = (now, data)
+            for k in [k for k, (t, _d) in _REPORTS.items() if now - t >= REPORT_CACHE_SECONDS]:
+                del _REPORTS[k]
+    return data
+
+
+def _plain(text):
+    """Finding text without Markdown marks, for Grafana tables."""
+    return re.sub(r"[`*]", "", text or "")
+
+
+def coach_rows(name, r):
+    """Rows of one part of the report as a JSON array, for Grafana's Infinity datasource. None if unknown."""
+    findings = r["findings"]
+    rule = lambda d: "%s %s" % (d, coach_report.RULES.get(d, ""))
+    if name == "summary":
+        sev = Counter(f["severity"] for f in findings)
+        return [{"hallazgos": len(findings), "alta": sev["alta"], "media": sev["media"], "baja": sev["baja"],
+                 "impacto_usd": round(sum(f.get("impact_usd") or 0 for f in findings), 2),
+                 "desde": r["period"]["from"], "hasta": r["period"]["to"]}]
+    if name == "findings":
+        return [{"id": f["id"], "severidad": f["severity"], "regla": rule(f["detector"]), "hallazgo": _plain(f["title"]),
+                 "impacto_usd": f.get("impact_usd"), "casos": f.get("impact_count"),
+                 "evidencia": _plain(f["evidence"]), "recomendacion": _plain(f["recommendation"])} for f in findings]
+    if name == "rules":
+        rows = {}
+        for f in findings:
+            row = rows.setdefault(f["detector"], {"regla": rule(f["detector"]), "hallazgos": 0, "alta": 0, "impacto_usd": 0.0})
+            row["hallazgos"] += 1
+            row["alta"] += f["severity"] == "alta"
+            row["impacto_usd"] = round(row["impacto_usd"] + (f.get("impact_usd") or 0), 2)
+        return sorted(rows.values(), key=lambda x: (-x["impacto_usd"], -x["hallazgos"]))
+    return None
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlsplit(self.path)
@@ -722,6 +807,19 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") in ("/report.md", "/report.json"):
             self.report(parsed)
+            return
+        if parsed.path.startswith("/coach/"):
+            try:
+                rows = coach_rows(parsed.path[len("/coach/"):].strip("/"), report_for(urllib.parse.parse_qs(parsed.query)))
+                status, body = (404, "[]") if rows is None else (200, json.dumps(rows, ensure_ascii=False))
+            except Exception as e:
+                status, body = 500, json.dumps({"error": str(e)})
+            body = body.encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
         path = self.path.split("?")[0]
         if path.startswith("/session/"):
@@ -753,17 +851,7 @@ class Handler(BaseHTTPRequestHandler):
         """The improvement report for the dashboard's period and projects, to download and share with an AI."""
         as_json = parsed.path.rstrip("/").endswith(".json")
         try:
-            query = urllib.parse.parse_qs(parsed.query)
-            since, until, label = list_range(query)
-            raw = ",".join(query.get("project", []))
-            projects = {p for p in re.split(r"[,|]", raw) if p and p not in (".*", "All", "$__all")}
-            anon = query.get("anon", ["0"])[0] == "1"
-            label = label.replace("de los ", "").replace("de todo el historial", "todo el historial")
-            c = connect()
-            try:
-                data = coach_report.build(c, sys.modules[__name__], since, until, label, projects or None, anon)
-            finally:
-                c.close()
+            data = report_for(urllib.parse.parse_qs(parsed.query), fresh=True)
             if as_json:
                 body, ctype = coach_render.render_json(data).encode(), "application/json; charset=utf-8"
             else:

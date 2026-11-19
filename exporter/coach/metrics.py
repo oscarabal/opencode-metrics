@@ -9,7 +9,11 @@ own series they are computed in the background thread and cached (see `refresh`)
   lowers the errors afterwards.
 - Cost and messages by week and agent, tool calls and errors, compactions and interrupted
   answers by week: the trends of the row.
-- The number and impact of the report's findings for the dashboard's periods.
+
+The data read for the series (messages, sessions, tool calls, compactions) is also kept, so
+the dashboard's findings panels build the report from it instead of reading the database
+again (see `snapshot`). The findings themselves are no longer published as series: the
+panels ask the exporter for them with the dashboard's period and projects.
 
 Until the tool index is ready nothing is published but `coach_index_ready` 0.
 """
@@ -21,15 +25,14 @@ from collections import Counter
 from . import report
 from .index import INDEX
 
-WINDOWS = (7, 30, 90, 36500)   # the dashboard's period choices
-SERIES_EVERY = 120             # seconds between two computations of the series
-FINDINGS_EVERY = 600           # seconds between two computations of the findings
+SERIES_EVERY = 120             # seconds between two readings of the database for the series
 
 # Everything is computed in the exporter's background thread and cached here: a scrape only
 # copies text, so it costs no more than before this module existed. On a Windows bind mount
 # the extra database reads made scrapes pass Prometheus' 10 s timeout.
-_state = {"series": [], "series_updated": 0, "by_window": {}, "findings_updated": 0}
+_state = {"series": [], "series_updated": 0, "loaded": None, "loaded_at": 0}
 _lock = threading.Lock()
+_wake = threading.Event()   # set by a findings panel that finds the data old, to read it again sooner
 
 
 def _day(ms):
@@ -49,53 +52,46 @@ def _lab(**kw):
     return ",".join('%s="%s"' % (k, _esc(v)) for k, v in kw.items())
 
 
-def refresh(conn, helpers, weeks=13):
-    """Recompute the series and the findings when they are due. Called from the background thread."""
+def refresh(conn, helpers, weeks=13, force=False):
+    """Read the database and recompute the series when due, or now with `force`. Called from the background thread."""
     if not INDEX.ready:
         return
-    now = time.time()
-    series_due = now - _state["series_updated"] >= SERIES_EVERY
-    findings_due = now - _state["findings_updated"] >= FINDINGS_EVERY
-    if not (series_due or findings_due):
+    if not force and time.time() - _state["series_updated"] < SERIES_EVERY:
         return
-    loaded = report.load(conn, helpers, refresh=False)  # read the database once for both
-    if series_due:
-        series = _series(loaded, weeks)
-        with _lock:
-            _state.update(series=series, series_updated=time.time())
-    if findings_due:
-        ms = int(time.time() * 1000)
-        by_window = {}
-        for w in WINDOWS:
-            data = report.build(conn, helpers, ms - w * 86400000, ms, "w%d" % w, loaded=loaded)
-            by_window[w] = [(f["detector"], f["severity"], f.get("impact_usd") or 0.0) for f in data["findings"]]
-        with _lock:
-            _state.update(by_window=by_window, findings_updated=time.time())
+    read_at = time.time()
+    loaded = report.load(conn, helpers, refresh=False)  # the thread has just refreshed the index
+    series = _series(loaded, weeks)
+    with _lock:
+        _state.update(series=series, series_updated=time.time(), loaded=loaded, loaded_at=read_at)
+
+
+def snapshot():
+    """The data of the last reading and when it started, or (None, 0) before the first one."""
+    with _lock:
+        return _state["loaded"], _state["loaded_at"]
+
+
+def request_refresh():
+    """Ask the background thread to read the database now instead of at its next turn."""
+    _wake.set()
+
+
+def wait(seconds):
+    """Sleep the background thread until its next turn or a request. True if it was a request."""
+    woken = _wake.wait(seconds)
+    _wake.clear()
+    return woken
 
 
 def lines(*_ignored):
-    """What a scrape publishes: the cached series and findings. Reads nothing from the database."""
+    """What a scrape publishes: the cached series. Reads nothing from the database."""
     with _lock:
         series = list(_state["series"])
-        by_window = dict(_state["by_window"])
-        s_upd, f_upd = _state["series_updated"], _state["findings_updated"]
+        s_upd = _state["series_updated"]
     out = list(series)
     add = out.append
     add("# TYPE coach_index_ready gauge")
     add("coach_index_ready %d" % (1 if INDEX.ready else 0))
-    add("# TYPE coach_findings gauge")
-    add("# TYPE coach_finding_impact_usd gauge")
-    for w, items in by_window.items():
-        count, impact = Counter(), Counter()
-        for det, sev, usd in items:
-            count[(det, sev)] += 1
-            impact[det] += usd
-        for (det, sev), n in count.items():
-            add("coach_findings{%s} %d" % (_lab(window=w, detector=det, rule=report.RULES.get(det, det), severity=sev), n))
-        for det, v in impact.items():
-            add("coach_finding_impact_usd{%s} %s" % (_lab(window=w, detector=det, rule=report.RULES.get(det, det)), round(v, 4)))
-    add("# TYPE coach_findings_updated_timestamp_seconds gauge")
-    add("coach_findings_updated_timestamp_seconds %s" % round(f_upd))
     add("# TYPE coach_series_updated_timestamp_seconds gauge")
     add("coach_series_updated_timestamp_seconds %s" % round(s_upd))
     return out

@@ -81,7 +81,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | Exportador (`python:3.13-alpine`) | Consulta las tablas `message`, `session` y `project`, lee los límites de contexto y publica las métricas en formato Prometheus. | 127.0.0.1:9101 | ninguna: recalcula en cada lectura |
 | Prometheus (`prom/prometheus:v3.5.0`) | Lee el exportador cada 30 s y guarda las series; motor de consulta PromQL. | 127.0.0.1:9091 | volumen `prometheus-data`, retención de 365 días |
-| Grafana (`grafana/grafana:12.1.0`) | Visualización. El datasource y el dashboard se cargan solos al arrancar. | 127.0.0.1:3001 | volumen `grafana-data` |
+| Grafana (`grafana/grafana:12.1.0`) | Visualización. Los datasources (Prometheus y Coach) y el dashboard se cargan solos al arrancar; el plugin Infinity, que usa Coach, se instala al arrancar con `GF_PLUGINS_PREINSTALL_SYNC`. | 127.0.0.1:3001 | volumen `grafana-data` |
 | Docker Compose | Levanta los tres contenedores con `restart: unless-stopped` y monta los ficheros de configuración y las carpetas de OpenCode en solo lectura. | n/a | n/a |
 
 Las imágenes llevan versión fijada, para que la pila no cambie sola, y los puertos se publican solo en `127.0.0.1`.
@@ -147,15 +147,13 @@ Decisiones que conviene conocer:
 | `opencode_weekly_agent_cost_usd`, `opencode_weekly_agent_messages` | gauge | `week`, `agent`, `project` | Coste y mensajes por semana y agente, últimas 13 semanas |
 | `opencode_weekly_tool_calls`, `opencode_weekly_tool_errors` | gauge | `week`, `tool` (y `error_class`), `project` | Llamadas y errores por semana y herramienta |
 | `opencode_weekly_compactions`, `opencode_weekly_aborted` | gauge | `week`, `project` | Compactaciones e interrupciones por semana |
-| `coach_findings` | gauge | `window`, `detector`, `rule`, `severity` | Hallazgos del informe para 7, 30 y 90 días y todo el historial |
-| `coach_finding_impact_usd` | gauge | `window`, `detector`, `rule` | Impacto estimado de esos hallazgos |
-| `coach_index_ready`, `coach_findings_updated_timestamp_seconds` | gauge | ninguna | Índice de herramientas leído; cuándo se calcularon los hallazgos |
+| `coach_index_ready`, `coach_series_updated_timestamp_seconds` | gauge | ninguna | Índice de herramientas leído; cuándo se calcularon por última vez las series de «Mejoras» |
 
 Prometheus solo guarda lo que ve mientras la pila funciona, así que no puede recortar por fechas unos totales acumulados ni reconstruir el pasado. Por eso las métricas llevan el día como etiqueta y el dashboard elige el rango. Con una base de datos de uso diario de varios meses, la lectura completa tarda unos tres segundos en el montaje de Windows y publica unas siete mil series.
 
 ## Dashboard
 
-«OpenCode - Uso y coste» tiene 25 paneles: cinco cifras de resumen, una tabla con el contexto de las sesiones recientes, otra con la cuota y el uso por proveedor, un gráfico semanal, el coste por agente y por proyecto, una comparación de coste y tokens por modelo, dos tablas anidadas, una de comandos y otra de skills, con el modelo y el agente de cada una, una tabla de detalle, en una fila que se puede plegar, un gráfico y una tabla de la actividad diaria por modelo, y una última fila, «Mejoras», con nueve paneles que resumen el informe de mejoras y siguen sus señales semana a semana. Arriba a la derecha, el enlace «Informe de mejoras (.md)» descarga el informe. La explicación de cada panel está en la guía del dashboard.
+«OpenCode - Uso y coste» tiene 26 paneles: cinco cifras de resumen, una tabla con el contexto de las sesiones recientes, otra con la cuota y el uso por proveedor, un gráfico semanal, el coste por agente y por proyecto, una comparación de coste y tokens por modelo, dos tablas anidadas, una de comandos y otra de skills, con el modelo y el agente de cada una, una tabla de detalle, en una fila que se puede plegar, un gráfico y una tabla de la actividad diaria por modelo, y una última fila, «Mejoras», con diez paneles que resumen el informe de mejoras, con la lista de hallazgos, y siguen sus señales semana a semana. Arriba a la derecha, el enlace «Informe de mejoras (.md)» descarga el informe. La explicación de cada panel está en la guía del dashboard.
 
 ### Selectores
 
@@ -189,7 +187,7 @@ El rediseño partió de un análisis de los 15 paneles anteriores con los datos 
 
 El coste por proyecto se mantuvo porque se quiere saber qué proyecto gasta más, aunque hoy uno concentre casi todo. La barra de contexto se hizo como tabla con celdas de barra porque el gráfico de barras apiladas de Grafana no muestra los valores sobre las barras y aquí interesan el porcentaje y los tokens exactos.
 
-El dashboard no se importa a mano: Grafana lo carga al arrancar desde `Grafana/` mediante `grafana-dashboards.yaml`, y el datasource, con uid `prometheus`, desde `grafana-datasource.yaml`. La carpeta se monta en solo lectura, así que los cambios se hacen en el JSON y se recargan al reiniciar Grafana.
+El dashboard no se importa a mano: Grafana lo carga al arrancar desde `Grafana/` mediante `grafana-dashboards.yaml`, y los datasources desde `grafana-datasource.yaml`: Prometheus (uid `prometheus`) y Coach (uid `coach`, tipo Infinity), que lee el informe de mejoras del exportador y solo puede pedir a `http://exporter:9101`. La carpeta se monta en solo lectura, así que los cambios se hacen en el JSON y se recargan al reiniciar Grafana.
 
 ## Informe de mejoras
 
@@ -203,7 +201,7 @@ El exportador incluye un módulo, `exporter/coach/`, que analiza el uso, detecta
 | `coach/render.py` | Pinta ese diccionario en Markdown, con las instrucciones para la IA, o en JSON |
 | `coach/cli.py` | Línea de comandos |
 
-**Salidas.** `/report.md` y `/report.json` en el puerto del exportador, con los mismos parámetros que `/sessions` (`window`, `from`, `to`, `project`) más `anon=1`; un enlace del dashboard, «Informe de mejoras (.md)», que construye esa dirección con los selectores; y `docker compose exec exporter python /app/coach/cli.py report`. Las tres llaman a la misma función.
+**Salidas.** `/report.md` y `/report.json` en el puerto del exportador, con los mismos parámetros que `/sessions` (`window`, `from`, `to`, `project`) más `anon=1`; un enlace del dashboard, «Informe de mejoras (.md)», que construye esa dirección con los selectores; y `docker compose exec exporter python /app/coach/cli.py report`. Las tres llaman a la misma función. Además, `/coach/summary`, `/coach/findings` y `/coach/rules`, con los mismos parámetros, devuelven partes del informe como tablas JSON para los paneles de hallazgos de la fila «Mejoras». Esas tres no leen la base de datos: calculan el informe con los datos que el hilo de fondo guardó en su última lectura (mensajes, sesiones, llamadas a herramientas y compactaciones), y un informe ya calculado con esos datos para el mismo periodo, proyectos y `anon` se reutiliza durante dos minutos. `/report.md` y `/report.json` sí leen la base en el momento.
 
 **Reglas (detectores).**
 
@@ -230,7 +228,9 @@ Cada hallazgo lleva evidencia, recomendación, impacto y hasta cinco sesiones de
 - **Texto de errores.** Es salida de las herramientas, no de la conversación. Se lee para clasificarlo y se descarta en el momento; ni se guarda en memoria ni se publica. Los argumentos de las llamadas solo se usan como un hash corto para reconocer llamadas repetidas.
 - **Impacto en dólares.** En errores y repeticiones, número de llamadas por el coste medio por llamada; en el coste por agente, lo que sobra respecto al coste por mensaje del resto; en turnos largos y compactaciones, su coste. Con Copilot es coste equivalente, no lo que se paga.
 - **Periodo anterior.** El resumen se compara con el periodo de la misma duración inmediatamente anterior, cuando hay datos.
-- **Métricas para Grafana.** Las series de errores, compactaciones, interrupciones y agentes por semana salen del mismo índice que el informe, con el día o la semana como etiqueta. Se calculan en el hilo de fondo (cada 2 minutos las series, cada 10 los hallazgos de los cuatro periodos fijos del dashboard, leyendo la base de datos una sola vez para ambos) y el scrape solo copia lo guardado. La primera versión las calculaba en cada scrape: en el montaje de Windows el scrape pasó de unos 2 s a unos 5 s y, mientras se calculaban los hallazgos, superaba el plazo de 10 s de Prometheus; el exportador aparecía caído y todo el dashboard se quedaba en blanco. Hasta que el índice está leído solo se publica `coach_index_ready` a 0. Añaden unas 1 600 series.
+- **Métricas para Grafana.** Las series de errores, compactaciones, interrupciones y agentes por semana salen del mismo índice que el informe, con el día o la semana como etiqueta. Se calculan en el hilo de fondo cada 2 minutos y el scrape solo copia lo guardado. La primera versión las calculaba en cada scrape: en el montaje de Windows el scrape pasó de unos 2 s a unos 5 s y, mientras se calculaban los hallazgos, superaba el plazo de 10 s de Prometheus; el exportador aparecía caído y todo el dashboard se quedaba en blanco. Hasta que el índice está leído solo se publica `coach_index_ready` a 0. Añaden unas 1 600 series.
+- **Fila «Mejoras» con los filtros del dashboard.** Los hallazgos se publicaban en Prometheus solo para los cuatro periodos fijos y sin proyecto, así que con el periodo Personalizado o un proyecto elegido no cuadraban con el informe. Ahora los paneles de hallazgos piden el informe al exportador con el datasource Infinity, con los mismos selectores que el enlace de descarga. Se descartaron publicar series por proyecto y periodo (demasiadas combinaciones), guardar los hallazgos por día para sumarlos en PromQL (la mayoría de reglas comparan con medias del periodo y no son sumables) y un panel de texto con el informe (no ordena ni filtra). Las tendencias semanales siguen en Prometheus. `coach_findings` y `coach_finding_impact_usd` se retiraron.
+- **Paneles de hallazgos con los datos del hilo de fondo.** Calcular el informe en cada consulta tardaba entre 1,5 y 3,5 s, y hasta 17 s si coincidía con el cálculo de fondo, porque leer todos los mensajes de una base de 1,1 GB por el montaje de Windows cuesta segundos aunque los hallazgos se calculen en menos de 0,1 s. Ahora los paneles usan la última lectura del hilo de fondo (como mucho unos 2 minutos de antigüedad, igual que las series de la fila) y responden en décimas de segundo; si esa lectura tiene más de 30 s, el panel la pide de nuevo y el hilo relee la base sin esperar a su turno. El informe descargado sigue leyendo la base en el momento, porque es el que se comparte. Se descartaron refrescar cada 30 s (más lecturas que compiten con el scrape, que ya tarda unos 5 s) y leer solo los mensajes cambiados (la tabla no tiene índice por fecha de actualización y el exportador abre la base en solo lectura). Hasta la primera lectura del hilo, unos 30 s tras arrancar, los paneles calculan el informe leyendo la base, como el descargado. Medido en Docker en Windows: entre 0,5 y 0,9 s la primera consulta de cada periodo o proyecto y unos 10 ms al repetirla, frente a 1,5–17 s antes.
 - **Servidor con hilos.** El exportador atiende cada petición en su propio hilo (`ThreadingHTTPServer`), para que una página de sesión o un informe no esperen detrás de un scrape. Las conexiones a SQLite son de cada petición y las cachés compartidas tienen su cerrojo.
 - **Plazo de lectura.** `prometheus.yml` sube el plazo del scrape a 25 s como margen para el montaje de Windows; el intervalo sigue en 30 s.
 - **Coste dentro y fuera de comandos.** El informe separa el coste de cada agente según venga de un comando propio o de uso directo, y cruza el modelo fijado en cada comando con la salud de ese modelo (errores por herramienta y de respuesta).
@@ -244,11 +244,11 @@ Cada hallazgo lleva evidencia, recomendación, impacto y hasta cinco sesiones de
 | Fichero | Para qué sirve |
 | --- | --- |
 | `docker-compose.yml` | Define los tres servicios, puertos y volúmenes. Monta en solo lectura la carpeta de datos y la de caché de OpenCode. |
-| `exporter/exporter.py` | Exportador SQLite → Prometheus. |
+| `exporter/exporter.py` | Exportador SQLite → Prometheus; sirve también las páginas de sesión, el informe y `/coach/...` para la fila «Mejoras». |
 | `exporter/session_page.py` | Pintado de las páginas de sesión y de la lista de sesiones. |
 | `exporter/coach/` | Informe de mejoras: análisis, reglas, Markdown, JSON y línea de comandos. |
 | `prometheus.yml` | Lectura del exportador cada 30 s. |
-| `grafana-datasource.yaml` | Datasource Prometheus provisionado. |
+| `grafana-datasource.yaml` | Datasources provisionados: Prometheus y Coach (Infinity, limitado a `http://exporter:9101`). |
 | `grafana-dashboards.yaml` | Proveedor que carga los dashboards de `Grafana/`. |
 | `Grafana/opencode-dashboard.json` | El dashboard. |
 | `.env` / `.env.example` | Contraseña de Grafana, rutas de las carpetas de OpenCode y límites de contexto de los modelos desconocidos. `.env` lo ignora git. |

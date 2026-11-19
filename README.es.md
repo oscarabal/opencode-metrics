@@ -111,9 +111,7 @@ Para reconocer las causas de los errores, el exportador lee el mensaje de error 
 | `opencode_weekly_agent_cost_usd`, `opencode_weekly_agent_messages` | gauge | `week`, `agent`, `project` | Coste y mensajes por semana y agente, últimas 13 semanas |
 | `opencode_weekly_tool_calls`, `opencode_weekly_tool_errors` | gauge | `week`, `tool` (y `error_class`), `project` | Llamadas y errores por semana y herramienta |
 | `opencode_weekly_compactions`, `opencode_weekly_aborted` | gauge | `week`, `project` | Compactaciones e interrupciones por semana |
-| `coach_findings` | gauge | `window`, `detector`, `rule`, `severity` | Hallazgos del informe de mejoras para cada periodo del dashboard (7, 30, 90 días y todo el historial); se recalculan cada 10 minutos |
-| `coach_finding_impact_usd` | gauge | `window`, `detector`, `rule` | Impacto estimado de esos hallazgos |
-| `coach_index_ready`, `coach_findings_updated_timestamp_seconds` | gauge | ninguna | El índice de herramientas ya está leído; cuándo se calcularon los hallazgos |
+| `coach_index_ready`, `coach_series_updated_timestamp_seconds` | gauge | ninguna | El índice de herramientas ya está leído; cuándo se calcularon por última vez las series de «Mejoras» |
 
 `project` es el nombre de la carpeta del proyecto; las sesiones que OpenCode no asocia a un proyecto salen como `global`.
 
@@ -123,7 +121,7 @@ Arriba hay tres selectores. **Periodo** ofrece los últimos 7, 30 o 90 días, to
 
 > En el formato numérico en español de Grafana «Mil» significa millones. El dashboard muestra los tokens en millones o en miles con el sufijo «M» o «k» para evitar la confusión.
 
-La última fila, **Mejoras**, resume el informe de mejoras y sirve para comprobar después si un cambio funcionó. El enlace **Informe de mejoras (.md)**, arriba a la derecha, descarga el informe completo.
+La última fila, **Mejoras**, resume el informe de mejoras y sirve para comprobar después si un cambio funcionó. El enlace **Informe de mejoras (.md)**, arriba a la derecha, descarga el informe completo. Los paneles de hallazgos (Mejoras detectadas, Impacto estimado, Hallazgos por regla y Hallazgos) leen el informe del exportador (`/coach/...`) con el datasource Infinity de Grafana, que Grafana instala al arrancar, así que siguen el periodo, también el Personalizado, y los proyectos elegidos. Calculan el informe con los datos que leyó por última vez el hilo de fondo del exportador, como mucho de hace unos dos minutos, y por eso cargan en décimas de segundo; el informe que se descarga lee siempre la base de datos en ese momento.
 
 | Panel | Tipo | Qué muestra | Qué aporta |
 | --- | --- | --- | --- |
@@ -143,10 +141,11 @@ La última fila, **Mejoras**, resume el informe de mejoras y sirve para comproba
 | Detalle por modelo | Tabla | Mensajes, tokens, coste, % del coste y USD por millón de tokens de cada proveedor y modelo, con totales en el pie | Las cifras exactas detrás de los gráficos |
 | Coste por día y modelo | Barras apiladas | Coste de cada día del periodo, apilado por los ocho modelos con más coste; `Otros` suma el resto; solo salen los días con actividad | Muestra qué modelo explica el gasto de cada día; se lee bien de 7 a 90 días y se satura con todo el historial |
 | Actividad por día y modelo | Tabla | Mensajes, tokens y coste de cada modelo en cada día del periodo, con filtro por columna | Responde a «¿usé el modelo X el día Y?» |
-| Mejoras detectadas e Impacto estimado | Cifras | Hallazgos del informe de mejoras en el periodo y la suma de su impacto en dólares; pulsarlas abre el informe | Cuánto hay por mejorar; con el periodo Personalizado no hay cifra |
+| Mejoras detectadas e Impacto estimado | Cifras | Hallazgos del informe de mejoras en el periodo y los proyectos elegidos y la suma de su impacto en dólares; pulsarlas abre el informe | Cuánto hay por mejorar |
 | Errores evitables de herramientas | Cifra | Parte de las llamadas que fallaron en el periodo, sin bloqueos por permisos, rechazos ni interrupciones | La salud general del uso de herramientas |
 | Compactaciones e interrupciones | Cifra doble | Compactaciones de contexto y respuestas interrumpidas en el periodo | Señales de sesiones demasiado largas o de prompts que arrancan mal |
 | Hallazgos por regla | Tabla | Hallazgos, cuántos de severidad alta e impacto, por regla del informe | Qué tipo de mejora pesa más |
+| Hallazgos | Tabla | Cada hallazgo, de mayor a menor severidad: regla, qué pasa, impacto, casos, recomendación y evidencia | Qué cambiar, sin descargar el informe |
 | Errores evitables por herramienta y modelo | Tabla | Llamadas, errores y tasa de cada herramienta con cada modelo que haya fallado; naranja desde el 5 %, rojo desde el 15 % | Dónde compensa una regla en AGENTS.md o cambiar de modelo |
 | Coste por mensaje de cada agente, por semana | Líneas | Coste medio por mensaje de cada agente, últimas 13 semanas | Comprueba si cambiar el modelo de un agente baja su coste |
 | Errores evitables por herramienta, por semana | Líneas | Tasa de error semanal de las cinco herramientas con más errores | Comprueba si una regla nueva o un cambio de modelo reduce los fallos |
@@ -183,7 +182,7 @@ exporter/exporter.py        exportador SQLite → Prometheus y páginas de sesi�
 exporter/session_page.py    HTML de la página de detalle de sesión
 exporter/coach/             informe de mejoras: análisis, reglas, Markdown y consola
 prometheus.yml              lectura del exportador
-grafana-datasource.yaml     datasource provisionado
+grafana-datasource.yaml     datasources provisionados (Prometheus y Coach)
 grafana-dashboards.yaml     proveedor de dashboards
 Grafana/                    JSON del dashboard
 .env.example                variables para copiar a .env

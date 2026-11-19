@@ -2315,8 +2315,8 @@
       "title": "Mejoras detectadas",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "coach"
       },
       "gridPos": {
         "x": 0,
@@ -2327,14 +2327,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "coach"
           },
-          "expr": "sum(coach_findings{window=\"$window\"})",
-          "legendFormat": "",
           "refId": "A",
-          "instant": true,
-          "range": false
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://exporter:9101/coach/summary?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": []
         }
       ],
       "fieldConfig": {
@@ -2360,7 +2367,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^hallazgos$/",
           "values": false
         },
         "colorMode": "value",
@@ -2369,15 +2376,15 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "description": "Hallazgos del informe de mejoras para el periodo elegido (todos los proyectos). Pulsa para abrir el informe. Con el periodo Personalizado no hay cifra: abre el informe."
+      "description": "Hallazgos del informe de mejoras para el periodo y los proyectos elegidos, también con el periodo Personalizado; el mismo cálculo que el informe que se descarga. Pulsa para abrir el informe."
     },
     {
       "id": 22,
       "title": "Impacto estimado",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "coach"
       },
       "gridPos": {
         "x": 6,
@@ -2388,14 +2395,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "coach"
           },
-          "expr": "sum(coach_finding_impact_usd{window=\"$window\"})",
-          "legendFormat": "",
           "refId": "A",
-          "instant": true,
-          "range": false
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://exporter:9101/coach/summary?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": []
         }
       ],
       "fieldConfig": {
@@ -2422,7 +2436,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^impacto_usd$/",
           "values": false
         },
         "colorMode": "value",
@@ -2431,7 +2445,7 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "description": "Suma del impacto en dólares de los hallazgos del periodo (coste equivalente; órdenes de magnitud, no ahorro garantizado)."
+      "description": "Suma del impacto en dólares de los hallazgos del periodo y los proyectos elegidos (coste equivalente; órdenes de magnitud, no ahorro garantizado)."
     },
     {
       "id": 23,
@@ -2558,8 +2572,8 @@
       "title": "Hallazgos por regla",
       "type": "table",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "coach"
       },
       "gridPos": {
         "x": 0,
@@ -2570,39 +2584,21 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "coach"
           },
-          "expr": "sum by (rule) (coach_findings{window=\"$window\"})",
-          "legendFormat": "",
           "refId": "A",
-          "instant": true,
-          "range": false,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://exporter:9101/coach/rules?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+          "url_options": {
+            "method": "GET",
+            "data": ""
           },
-          "expr": "sum by (rule) (coach_findings{window=\"$window\",severity=\"alta\"})",
-          "legendFormat": "",
-          "refId": "B",
-          "instant": true,
-          "range": false,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (rule) (coach_finding_impact_usd{window=\"$window\"})",
-          "legendFormat": "",
-          "refId": "C",
-          "instant": true,
-          "range": false,
-          "format": "table"
+          "root_selector": "",
+          "columns": []
         }
       ],
       "fieldConfig": {
@@ -2644,36 +2640,24 @@
       },
       "transformations": [
         {
-          "id": "merge",
-          "options": {}
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "Time": true
+            "indexByName": {
+              "regla": 0,
+              "hallazgos": 1,
+              "alta": 2,
+              "impacto_usd": 3
             },
             "renameByName": {
-              "rule": "Regla",
-              "Value #A": "Hallazgos",
-              "Value #B": "Severidad alta",
-              "Value #C": "Impacto"
+              "regla": "Regla",
+              "hallazgos": "Hallazgos",
+              "alta": "Severidad alta",
+              "impacto_usd": "Impacto"
             }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              {
-                "field": "Impacto",
-                "desc": true
-              }
-            ]
           }
         }
       ],
-      "description": "Hallazgos del informe agrupados por regla, para el periodo elegido. El detalle, con la recomendación y las sesiones de ejemplo, está en el informe."
+      "description": "Hallazgos del informe agrupados por regla, para el periodo y los proyectos elegidos. El detalle de cada uno está en la tabla «Hallazgos» y en el informe."
     },
     {
       "id": 26,
@@ -2822,6 +2806,205 @@
       "description": "Herramientas y modelos con algún error en el periodo, sin bloqueos por permisos, rechazos ni interrupciones. Naranja desde el 5 % y rojo desde el 15 %: ahí suele compensar una regla en AGENTS.md o cambiar de modelo."
     },
     {
+      "id": 30,
+      "title": "Hallazgos",
+      "type": "table",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "coach"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 101,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "coach"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "parser": "backend",
+          "url": "http://exporter:9101/coach/findings?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Sin hallazgos en este periodo",
+          "custom": {
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "links": [
+            {
+              "title": "Abrir el informe de mejoras",
+              "targetBlank": true,
+              "url": "http://localhost:9101/report.md?window=${window}&from=${desde}&to=${hasta}&project=${project:csv}"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Impacto"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 50
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Casos"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severidad"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "alta": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "media": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "baja": {
+                        "color": "text",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Regla"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hallazgo"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "lg",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "id": 0,
+              "severidad": 1,
+              "regla": 2,
+              "hallazgo": 3,
+              "impacto_usd": 4,
+              "casos": 5,
+              "recomendacion": 6,
+              "evidencia": 7
+            },
+            "renameByName": {
+              "id": "Id",
+              "severidad": "Severidad",
+              "regla": "Regla",
+              "hallazgo": "Hallazgo",
+              "impacto_usd": "Impacto",
+              "casos": "Casos",
+              "recomendacion": "Recomendación",
+              "evidencia": "Evidencia"
+            }
+          }
+        }
+      ],
+      "description": "Cada mejora detectada en el periodo y los proyectos elegidos, de mayor a menor severidad: qué pasa, cuánto pesa y qué cambiar. Es el mismo cálculo que el informe; el informe añade sesiones de ejemplo y las tablas de apoyo. Pasa el ratón por una celda o usa «Inspect» para leer textos largos."
+    },
+    {
       "id": 27,
       "title": "Coste por mensaje de cada agente, por semana",
       "type": "timeseries",
@@ -2831,7 +3014,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 101,
+        "y": 111,
         "w": 12,
         "h": 9
       },
@@ -2933,7 +3116,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 101,
+        "y": 111,
         "w": 12,
         "h": 9
       },
@@ -3035,7 +3218,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 110,
+        "y": 120,
         "w": 24,
         "h": 7
       },

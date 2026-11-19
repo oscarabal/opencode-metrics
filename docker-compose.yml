@@ -35,6 +35,8 @@ services:
     image: grafana/grafana:12.1.0
     environment:
       - GF_SECURITY_ADMIN_USER=admin
+      # The «Mejoras» panels read the exporter's report through this datasource plugin
+      - GF_PLUGINS_PREINSTALL_SYNC=yesoreyeram-infinity-datasource
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?copy .env.example to .env and set a password}
     volumes:
       - ./grafana-datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
